@@ -1,0 +1,88 @@
+#include <vector>
+#include <queue>
+#include <cmath>
+#include <algorithm>
+
+using namespace std;
+
+class Solution {
+private:
+    vector<vector<int>> st_max;
+    vector<vector<int>> st_min;
+    vector<int> lg;
+
+    // Initialize Sparse Tables for O(1) Range Maximum and Minimum Queries
+    void init_rmq(const vector<int>& nums) {
+        int n = nums.size();
+        int max_log = log2(n) + 1;
+        
+        st_max.assign(n, vector<int>(max_log));
+        st_min.assign(n, vector<int>(max_log));
+        lg.assign(n + 1, 0);
+
+        for (int i = 2; i <= n; i++) {
+            lg[i] = lg[i / 2] + 1;
+        }
+
+        for (int i = 0; i < n; i++) {
+            st_max[i][0] = nums[i];
+            st_min[i][0] = nums[i];
+        }
+
+        for (int j = 1; j < max_log; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                st_max[i][j] = max(st_max[i][j - 1], st_max[i + (1 << (j - 1))][j - 1]);
+                st_min[i][j] = min(st_min[i][j - 1], st_min[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    // Get the value of subarray nums[l..r] in O(1) time
+    long long get_val(int l, int r) {
+        int j = lg[r - l + 1];
+        int mx = max(st_max[l][j], st_max[r - (1 << j) + 1][j]);
+        int mn = min(st_min[l][j], st_min[r - (1 << j) + 1][j]);
+        return (long long)mx - mn;
+    }
+
+    // Structure to represent a state in the priority queue
+    struct Element {
+        long long val;
+        int l;
+        int r;
+
+        bool operator<(const Element& other) const {
+            return val < other.val; // Max-heap behavior
+        }
+    };
+
+public:
+    long long maxTotalValue(vector<int>& nums, int k) {
+        int n = nums.size();
+        init_rmq(nums);
+
+        priority_queue<Element> pq;
+
+        // Initialize heap with the largest subarray value for each starting point 'l'
+        for (int l = 0; l < n; l++) {
+            pq.push({get_val(l, n - 1), l, n - 1});
+        }
+
+        long long total_value = 0;
+
+        // Extract the top k maximum distinct subarray values
+        while (k-- > 0 && !pq.empty()) {
+            Element curr = pq.top();
+            pq.pop();
+
+            total_value += curr.val;
+
+            // If the subarray can be shrunk from the right, push the next candidate
+            if (curr.r > curr.l) {
+                pq.push({get_val(curr.l, curr.r - 1), curr.l, curr.r - 1});
+            }
+        }
+
+        return total_value;
+    }
+};
