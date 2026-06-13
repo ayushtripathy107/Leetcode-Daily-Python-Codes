@@ -19,5 +19,3 @@ class Solution(object):
             res.append(common_count)
             
         return res
-        
-  
