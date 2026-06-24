@@ -1,0 +1,69 @@
+class Solution(object):
+    def zigZagArrays(self, n, l, r):
+        """
+        :type n: int
+        :type l: int
+        :type r: int
+        :rtype: int
+        """
+        MOD = 10**9 + 7
+        m = r - l + 1
+        size = 2 * m
+        
+        # Helper function for matrix multiplication
+        def multiply(A, B):
+            C = [[0] * size for _ in range(size)]
+            for i in range(size):
+                for k in range(size):
+                    if A[i][k] == 0:
+                        continue
+                    for j in range(size):
+                        C[i][j] = (C[i][j] + A[i][k] * B[k][j]) % MOD
+            return C
+
+        # Helper function for matrix power via binary exponentiation
+        def power(A, p):
+            res = [[0] * size for _ in range(size)]
+            for i in range(size):
+                res[i][i] = 1
+            base = A
+            while p > 0:
+                if p % 2 == 1:
+                    res = multiply(res, base)
+                base = multiply(base, base)
+                p //= 2
+            return res
+
+        # Construct the transition matrix T
+        # T[j][i] represents moving from state i to state j
+        T = [[0] * size for _ in range(size)]
+        
+        for x in range(m):
+            # From (DOWN, x) -> state index x
+            # Can transition to (UP, y) -> state index m + y, for all y < x
+            for y in range(x):
+                T[m + y][x] = 1
+                
+            # From (UP, x) -> state index m + x
+            # Can transition to (DOWN, y) -> state index y, for all y > x
+            for y in range(x + 1, m):
+                T[y][m + x] = 1
+
+        # Base counts at length n = 2
+        # V[y] = count for (DOWN, y) state
+        # V[m + y] = count for (UP, y) state
+        V = [0] * size
+        for y in range(m):
+            V[y] = y
+            V[m + y] = m - 1 - y
+            
+        # We need to perform n - 2 transitions from length 2 to length n
+        T_pow = power(T, n - 2)
+        
+        # Multiply T_pow by vector V
+        final_V = [0] * size
+        for i in range(size):
+            for j in range(size):
+                final_V[i] = (final_V[i] + T_pow[i][j] * V[j]) % MOD
+                
+        return sum(final_V) % MOD
